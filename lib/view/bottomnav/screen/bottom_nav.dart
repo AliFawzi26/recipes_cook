@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:recipes_cook/view/favourite/screen/favourite_screen.dart';
+import 'package:recipec_food/view/favourite/screen/favourite_screen.dart';
+import '../../addproduct/controller/addproduct_controller.dart';
 import '../../addproduct/screen/addproduct.dart';
 import '../controller/bottom_nav_controller.dart';
 import '../../../Core/const/app_colors.dart';
@@ -56,10 +57,20 @@ class BottomNavBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         FloatingActionButton(
-          onPressed: () => Get.dialog(
+          onPressed: () {
+            if (!Get.isRegistered<AddProductController>()) {
+              Get.put(AddProductController());
+            }
+
+            Get.dialog(
+              AddProductDialog(),
+              barrierDismissible: false,
+            );
+          },
+         /* onPressed: () => Get.dialog(
             AddProductDialog(),
             barrierDismissible: false,
-          ),
+          ),*/
           backgroundColor: ColorManger.oran,
           shape:  CircleBorder(),
           child:  Icon(Icons.add, size: 30, color: ColorManger.white),
@@ -68,4 +79,5 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 }
+
 
