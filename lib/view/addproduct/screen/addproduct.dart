@@ -1,93 +1,107 @@
 
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
-import '../../../Core/local_storge/sqfilte_config.dart';
+import 'package:recipec_food/Core/const/app_colors.dart';
+import 'package:recipec_food/Core/const/text_style.dart';
 import '../../../model/recipec.dart';
-import '../../food/sweets/controller/recipes_controller.dart';
-class AddProductController extends GetxController {
-  final titleController = TextEditingController();
-  final descriptionController = TextEditingController();
-  var selectedCategory = 'حلويات'.obs;
-  var imageFile = Rx<File?>(null);
-  final db = SqfliteConfg();
-  /// ✅ تحميل الصورة
-  Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      imageFile.value = File(pickedFile.path);
-    }
-  }
-  /// ✅ تعيين صورة موجودة مسبقًا
-  void setImageFromPath(String imagePath) {
-    if (imagePath.isNotEmpty) {
-      imageFile.value = File(imagePath);
-    }
-  }
-  /// ✅ تحميل بيانات وصفة لتعديلها
-  void loadRecipe(RecipeModel recipe) {
-    titleController.text = recipe.title;
-    descriptionController.text = recipe.description;
-    selectedCategory.value = recipe.category;
-    setImageFromPath(recipe.image ?? '');
-  }
-  /// ✅ حفظ منتج جديد
-  Future<void> saveProduct() async {
-    if (titleController.text.isNotEmpty) {
-      final recipe = RecipeModel(
-        title: titleController.text,
-        description: descriptionController.text,
-        category: selectedCategory.value,
-        image: imageFile.value?.path,
-      );
-      final insertedId = await db.insertRecipe(recipe);
-      if (insertedId > 0) {
-        getTargetController()?.loadData();
-        clearFields();
-        Get.back();
-        Get.snackbar("نجاح", "تمت إضافة المنتج بنجاح", backgroundColor: Colors.green);
-      } else {
-        Get.snackbar("خطأ", "حدث خطأ أثناء الحفظ", backgroundColor: Colors.red);
-      }
+import '../controller/addproduct_controller.dart';
+class AddProductDialog extends StatelessWidget {
+  final RecipeModel? recipe;
+  AddProductDialog({super.key, this.recipe});
+
+  final AddProductController controller = Get.find<AddProductController>();
+
+  @override
+  Widget build(BuildContext context) {
+    // تحميل البيانات مرة واحدة فقط
+    if (recipe != null) {
+      controller.loadRecipe(recipe!);
     } else {
-      Get.snackbar("خطأ", "يرجى ملء جميع الحقول", backgroundColor: Colors.red);
+      controller.clearFields(); // إعادة تعيين إذا تم الفتح للإضافة
     }
+    return AlertDialog(
+      title: Text(
+        recipe == null ? "إضافة منتج جديد" : "تعديل المنتج",
+        style: FontStyles.textalr,
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller.titleController,
+              decoration: const InputDecoration(labelText: "اسم المنتج"),
+            ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: controller.descriptionController,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              decoration: const InputDecoration(labelText: "التفاصيل"),
+            ),
+            SizedBox(height: 12.h),
+            Obx(() => DropdownButtonFormField<String>(
+              value: controller.selectedCategory.value,
+              items: ['حلويات', 'سلطات', 'أكلات غربية', 'أكلات شرقية']
+                  .map((category) => DropdownMenuItem(
+                value: category,
+                child: Text(category, style: FontStyles.phstyle),
+              ))
+                  .toList(),
+              onChanged: (value) {
+                controller.selectedCategory.value = value!;
+              },
+              decoration: const InputDecoration(labelText: "الفئة"),
+            )),
+            SizedBox(height: 12.h),
+            _buildImagePicker(),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text("إلغاء", style: FontStyles.exstyle),
+        ),
+        TextButton(
+          onPressed: () {
+            recipe == null
+                ? controller.saveProduct()
+                : controller.updateProduct(recipe!.id!);
+          },
+          child: Text(recipe == null ? "حفظ" : "تعديل", style: FontStyles.phstyle),
+        ),
+      ],
+    );
   }
-  /// ✅ تعديل منتج موجود
-  Future<void> updateProduct(int id) async {
-    if (titleController.text.isNotEmpty) {
-      final recipe = RecipeModel(
-        id: id,
-        title: titleController.text,
-        description: descriptionController.text,
-        category: selectedCategory.value,
-        image: imageFile.value?.path,
-      );
-      final result = await db.updateRecipe(recipe);
-      if (result > 0) {
-        getTargetController()?.loadData();
-        clearFields();
-        Get.back();
-        Get.snackbar("نجاح", "تم تعديل المنتج بنجاح", backgroundColor: Colors.green);
+  Widget _buildImagePicker() {
+    return Obx(() {
+      if (controller.imageFile.value == null) {
+        return ElevatedButton(
+          onPressed: controller.pickImage,
+          child: Text("اختر صورة", style: FontStyles.phstyle),
+        );
       } else {
-        Get.snackbar("خطأ", "حدث خطأ أثناء التعديل", backgroundColor: Colors.red);
+        return Column(
+          children: [
+            Image.file(
+              controller.imageFile.value!,
+              height: 120.h,
+              width: 120.w,
+              fit: BoxFit.cover,
+            ),
+            SizedBox(height: 8.h),
+            IconButton(
+              icon: Icon(Icons.delete, color: ColorManger.red, size: 24.sp),
+              onPressed: () => controller.imageFile.value = null,
+            ),
+          ],
+        );
       }
-    } else {
-      Get.snackbar("خطأ", "يرجى ملء جميع الحقول", backgroundColor: Colors.red);
-    }
-  }
-  /// ✅ جلب المتحكم الصحيح حسب الفئة
-  RecipesController? getTargetController() {
-    return Get.find<RecipesController>(tag: selectedCategory.value);
-  }
-  /// ✅ تفريغ الحقول بعد الحفظ أو التعديل
-  void clearFields() {
-    titleController.clear();
-    descriptionController.clear();
-    selectedCategory.value = 'حلويات';
-    imageFile.value = null;
+    });
   }
 }
+
 
