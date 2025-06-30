@@ -9,13 +9,11 @@ class FontStyles {
   fontWeight: FontWeight.bold,
   color: ColorManger.oran,
   );
-
-  static TextStyle tabBar(BuildContext context) {
-    return TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w600,
-    );
-  }
+ static const tabBar = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+  );
+ 
 static var textalr= TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold);
 static  var exstyle= TextStyle(color: ColorManger.red, fontSize: 14.sp);
   static  var phstyle= TextStyle( fontSize: 14.sp);
